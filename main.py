@@ -1,6 +1,7 @@
 import telebot
 from telebot import types
 import webbrowser
+import sqlite3
 
 bot = telebot.TeleBot('8200144246:AAHHqWfLpkQsZhQehDjPyX1GORdbu4Egiq4')
 
@@ -11,6 +12,8 @@ def start(message):
     btn1 = types.KeyboardButton('Удалить файл')
     btn2 = types.KeyboardButton('Изменить текст')
     markup.add(button)
+    markup.row(btn1, btn2)
+    markup.row(btn1, btn2)
     markup.row(btn1, btn2)
     file = open('./Screenshot.jpg', 'rb')
     bot.send_message(message.chat.id, 'Hello!', reply_markup = markup)
@@ -23,7 +26,7 @@ def on_click(message):
     #elif message.text == 'Удалить файл':
         #bot.delete_message(message.chat.id, message.message_id - 1)
     #elif message.text == 'Изменить текст':
-        #bot.edit_message_text('Изменил текст', message.chat.id, message.message_id - 1)
+        #bot.edit_message_text('Изменил текст', message.chat.id, message.message_id - 2)
 
 @bot.message_handler(commands = ['hello'])
 def main(message):
