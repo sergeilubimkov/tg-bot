@@ -2,8 +2,7 @@ import telebot
 from telebot import types
 import webbrowser
 from datetime import date
-import sqlite3
-
+import insert_into_DB
 from unicodedata import category
 
 bot = telebot.TeleBot('8200144246:AAHHqWfLpkQsZhQehDjPyX1GORdbu4Egiq4')
@@ -12,11 +11,9 @@ users_data = {}
 
 @bot.message_handler(commands = ['start'])
 def start(message):
-    # file = open('./Screenshot.jpg', 'rb')
-    # bot.send_message(message.chat.id, 'Hello!')
-    # bot.send_photo(message.chat.id, file)
-    if message.from_user.id not in users_data:
-        users_data[message.from_user.id] = []
+
+    if not insert_into_DB.check_users(message.from_user.id):
+        insert_into_DB.add_user(message.from_user.id)
         bot.send_message(message.chat.id, 'Привет! 👋 \nЯ зарегистрировал Вас в системе учета расходов')
     else:
         bot.send_message(message.from_user.id, 'С возращением! \nВы уже зарегистривованы')
@@ -47,31 +44,25 @@ def site(message):
         return
 
     category = ' '.join(args[1:])
-    users_data[message.from_user.id].append({'amount': amount, 'category': category, 'date': date.today()})
+    insert_into_DB.add_expenses(message.from_user.id, amount, category)
     bot.send_message(message.from_user.id, f'✅ Добавлено: {amount} руб на {category}')
 
 @bot.message_handler(commands = ['today'])
 def today(message):
     user_id = message.from_user.id
-    today_date = date.today()
 
-    expenses = [e for e in users_data.get(user_id, []) if e["date"] == today_date]
-
+    expenses, total = insert_into_DB.today_expenses(user_id)
     if not expenses:
         bot.send_message(message.from_user.id, "Сегодня расходов пока нет")
         return
 
-    totals_by_category = {}
+    lines = ''
     for e in expenses:
-        category = e["category"]
-        totals_by_category[category] = totals_by_category.get(category, 0) + e["amount"]
+        amount = float(e[0])
+        category = e[1]
+        lines += f"- {amount:.2f} руб. ({category})\n"
 
-    lines = [f"- {amount} руб. ({category})" for category, amount in totals_by_category.items()]
-
-    details = "\n".join(lines)
-    total = sum(totals_by_category.values())
-
-    bot.send_message(message.from_user.id, f"Сегодняшние расходы:\n{details}\n\nИтого: {total} руб.")
+    bot.send_message(message.from_user.id, f"Сегодняшние расходы:\n{lines}\nИтого: {total} руб.")
 
 
 @bot.message_handler(content_types = ['photo', 'video', 'audio', 'voice', 'document', 'video_note'])
@@ -80,7 +71,6 @@ def get_file(message):
     markup.add(types.InlineKeyboardButton('Добавить пожелания', url='https://github.com/sergeilubimkov/tg-bot'))
     #region TestingButton
     btn1 = types.InlineKeyboardButton('Удалить файл', callback_data='delete')
-    # btn2 = types.InlineKeyboardButton('Изменить текст', callback_data='edit')
     markup.row(btn1) #, btn2)
     #endregion
     bot.reply_to(message, 'Извините, я пока что не умею обрабатывать файлы \nВы можете оставить свои пожелания по ссылке ниже:', reply_markup = markup)
