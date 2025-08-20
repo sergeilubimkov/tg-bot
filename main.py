@@ -1,6 +1,7 @@
 import telebot
 from telebot import types
 import webbrowser
+from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import date
 import insert_into_DB
 from unicodedata import category
@@ -47,22 +48,61 @@ def site(message):
     insert_into_DB.add_expenses(message.from_user.id, amount, category)
     bot.send_message(message.from_user.id, f'✅ Добавлено: {amount} руб на {category}')
 
+def send_expenses_report(message, expenses, total, title, empty_text):
+    if not expenses:
+        bot.send_message(message.from_user.id, empty_text)
+        return
+
+    lines = ""
+    for amount, category in expenses:
+        lines += f"- {float(amount):.2f} руб. ({category})\n"
+
+    text = f"{title}:\n{lines}\nИтого: {total:.2f} руб."
+    bot.send_message(message.from_user.id, text)
+
 @bot.message_handler(commands = ['today'])
 def today(message):
     user_id = message.from_user.id
 
     expenses, total = insert_into_DB.today_expenses(user_id)
-    if not expenses:
-        bot.send_message(message.from_user.id, "Сегодня расходов пока нет")
-        return
+    send_expenses_report(
+        message, expenses, total,
+        "Сегодняшние расходы",
+        "Сегодня расходов пока нет"
+    )
 
-    lines = ''
-    for e in expenses:
-        amount = float(e[0])
-        category = e[1]
-        lines += f"- {amount:.2f} руб. ({category})\n"
+@bot.message_handler(commands = ['yesterday'])
+def yesterday(message):
+    user_id = message.from_user.id
 
-    bot.send_message(message.from_user.id, f"Сегодняшние расходы:\n{lines}\nИтого: {total} руб.")
+    expenses, total = insert_into_DB.yesterday_expenses(user_id)
+    send_expenses_report(
+        message, expenses, total,
+        "Вчерашние расходы",
+        "Вчера расходов не было"
+    )
+
+@bot.message_handler(commands = ['week'])
+def week(message):
+    user_id = message.from_user.id
+
+    expenses, total = insert_into_DB.week_expenses(user_id)
+    send_expenses_report(
+        message, expenses, total,
+        "Расходы за последнюю неделю",
+        "За последнюю неделю расходов не было"
+    )
+
+@bot.message_handler(commands = ['month'])
+def month(message):
+    user_id = message.from_user.id
+
+    expenses, total = insert_into_DB.month_expenses(user_id)
+    send_expenses_report(
+        message, expenses, total,
+        "Расходы за последнюю неделю",
+        "За последнюю неделю расходов не было"
+    )
 
 
 @bot.message_handler(content_types = ['photo', 'video', 'audio', 'voice', 'document', 'video_note'])
@@ -91,5 +131,15 @@ def info(message):
         bot.reply_to(message, f'Your ID: {message.from_user.id}')
     if message.text.lower() == 'hello':
         bot.reply_to(message, f'Hello! {message.from_user.first_name} {message.from_user.last_name}')
+
+def send_reminder():
+    USER_IDS = insert_into_DB.getUsers()
+    for user_id in USER_IDS:
+        bot.send_message(user_id, "👋 Не забудьте внести сегодняшние расходы!")
+
+scheduler = BackgroundScheduler()
+
+scheduler.add_job(send_reminder, 'cron', hour=21, minute=0)
+scheduler.start()
 
 bot.infinity_polling()
