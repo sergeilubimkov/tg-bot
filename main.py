@@ -6,7 +6,8 @@ from datetime import date
 import insert_into_DB
 from unicodedata import category
 
-bot = telebot.TeleBot('8200144246:AAHHqWfLpkQsZhQehDjPyX1GORdbu4Egiq4')
+TOKEN = os.getenv("BOT_TOKEN")
+bot = telebot.TeleBot(TOKEN)
 
 users_data = {}
 
@@ -34,6 +35,7 @@ def site(message):
 @bot.message_handler(commands = ['add'])
 def site(message):
     args = message.text.split()[1:]
+
     if len(args) < 2:
         bot.reply_to(message, 'Извините, Вы некорректно ввели команду.\nИспользуйте, пожалуйста, синтаксиси вида:\n/add сумма категория')
         return
@@ -100,8 +102,8 @@ def month(message):
     expenses, total = insert_into_DB.month_expenses(user_id)
     send_expenses_report(
         message, expenses, total,
-        "Расходы за последнюю неделю",
-        "За последнюю неделю расходов не было"
+        "Расходы за последний месяц",
+        "За последний месяц расходов не было"
     )
 
 
