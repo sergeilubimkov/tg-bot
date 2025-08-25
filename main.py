@@ -1,10 +1,16 @@
 import telebot
+import os
+from dotenv import load_dotenv
 from telebot import types
 import webbrowser
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import date
 import insert_into_DB
+import forDB
 from unicodedata import category
+
+load_dotenv()
+forDB.init_db()
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN)
